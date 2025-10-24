@@ -19,12 +19,16 @@ The normalisation approach combines **cosine similarity** and **fuzzy-token matc
 
 ---
 
-## Assumptions / Out of scope
+## Assumptions
 
 * It is out of scope to match titles with the same semantic meaning but completely different letters (natural language processing). E.g., “developer” and “engineer”. The task timeframe does not allow for a large amount of effort. This could be implemented using alternate names and primary names, or by ML, taxonomy.
 * If there’s no match, it’s OK to return an empty string.
 * It’s OK to add more job titles to the given table.
 * This demo does not need to cover an extensive set of use cases, e.g., job title and prefix lists are short.
+* Duplicate/repeated words are ignored when comparing job titles.
+* 75% similarity score is a good enough threshold.
+* 60% cosine + 40% fuzzy score isa good enough distribution of weights.
+* Special characters like C++, C#, .NET are supported by the Normaliser.
 
 
 ## Running the project
