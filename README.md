@@ -19,12 +19,12 @@ The normalisation approach combines **cosine similarity** and **fuzzy-token matc
 
 ---
 
-## Assumptions
+## Assumptions / Out of scope
 
-* It is out of scope to match titles with the same semantic meaning but completely different letters (natural language processing). E.g., “developer” and “engineer”. The task timeframe does not allow for a large amount of effort. This could be implemented using alternate names and primary names.
+* It is out of scope to match titles with the same semantic meaning but completely different letters (natural language processing). E.g., “developer” and “engineer”. The task timeframe does not allow for a large amount of effort. This could be implemented using alternate names and primary names, or by ML, taxonomy.
 * If there’s no match, it’s OK to return an empty string.
 * It’s OK to add more job titles to the given table.
-* The class does not need to cover an extensive set of use cases (in real world data can be noisy). This requires too much effort for given timeframe.
+* This demo does not need to cover an extensive set of use cases, e.g., job title and prefix lists are short.
 
 
 ## Running the project
