@@ -1,8 +1,8 @@
 plugins {
-    id("java")
+    java
 }
 
-group = "com.zanete"
+group = "com.zanete.jobtitlenormaliser"
 version = "1.0-SNAPSHOT"
 
 repositories {

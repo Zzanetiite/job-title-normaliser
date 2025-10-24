@@ -1,6 +1,4 @@
-package com.zanete;
-
-import static org.junit.jupiter.api.Assertions.*;
+package com.zanete.jobtitlenormaliser;
 
 import org.junit.jupiter.api.Test;
 
