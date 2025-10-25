@@ -16,7 +16,7 @@ import org.apache.commons.text.similarity.JaroWinklerSimilarity;
  * For more information, see:
  * <a href="https://en.wikipedia.org/wiki/Jaro%E2%80%93Winkler_distance">Jaro-Winkler similarity - Wikipedia</a>
  */
-public class FuzzyTokenMatcher {
+public class FuzzyTokenMatcher implements Matcher {
 
   private static final JaroWinklerSimilarity jaroWinkler = new JaroWinklerSimilarity();
 
@@ -32,7 +32,7 @@ public class FuzzyTokenMatcher {
    * @return a double value between 0.0 and 1.0 representing the fuzzy similarity;
    * returns 0.0 if either list is empty
    */
-  public static double fuzzyScore(List<String> tokens1, List<String> tokens2) {
+  public double calculateScore(List<String> tokens1, List<String> tokens2) {
     tokens1 = filterValid(tokens1);
     tokens2 = filterValid(tokens2);
 

@@ -1,121 +1,94 @@
 package com.zanete.jobtitlenormaliser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.zanete.jobtitlenormaliser.matcher.InvalidWeightsException;
+import com.zanete.jobtitlenormaliser.matcher.Matcher;
+import com.zanete.jobtitlenormaliser.matcher.Matchers;
 import com.zanete.jobtitlenormaliser.model.MatchedTitle;
-import java.util.Optional;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class NormaliserTest {
 
+  private static final int TEST_JOB_TITLE_COUNT = 2;
+  private static final String TEST_TITLE = "Software Engineer";
+  private static final List<String> TEST_TOKENS_SE = List.of("software", "engineer");
+  private static final List<String> TEST_TOKENS_ACCOUNTANT = List.of("accountant");
   private Normaliser normaliser;
 
+  @Mock
+  JobTitleProvider jobTitleProvider;
+  @Mock
+  Matcher matcher1;
+  @Mock
+  Matcher matcher2;
+
   @BeforeEach
-  void setup() {
-    normaliser = new Normaliser();
+  void setup() throws InvalidWeightsException {
+    when(jobTitleProvider.getJobTitlePrefixesToIgnore()).thenReturn(
+        List.of("senior", "junior", "lead", "principal")
+    );
+    when(jobTitleProvider.getNormalisedJobTitles()).thenReturn(
+        List.of("Software Engineer", "Accountant")
+    );
+
+    normaliser = new Normaliser(jobTitleProvider, Matchers.builder()
+        .addMatcher(matcher1, 0.25)
+        .addMatcher(matcher2, 0.75)
+        .build()
+    );
   }
 
   @Test
-  @DisplayName("Returns empty string for null or blank input")
-  void testNullOrBlankInput() {
-    assertEquals("", normaliser.normalise(null));
-    assertEquals("", normaliser.normalise(""));
-    assertEquals("", normaliser.normalise("   "));
-  }
+  @DisplayName("normaliseDetailed calls calculateScore on each matcher")
+  void testCalculateScoreCalled() {
+    when(matcher1.calculateScore(anyList(), anyList())).thenReturn(0.8);
+    when(matcher2.calculateScore(anyList(), anyList())).thenReturn(0.6);
 
+    normaliser.normaliseDetailed(TEST_TITLE);
 
-  @Test
-  @DisplayName("Handles bad inputs with numbers and symbols")
-  void testNumericAndSymbolInput() {
-    assertEquals("", normaliser.normalise("12345"));
-    assertEquals("", normaliser.normalise("!@#$%^&*()"));
-    assertEquals("", normaliser.normalise("   "));
-    assertEquals("", normaliser.normalise("@@developer!!"));
-    assertEquals("", normaliser.normalise("123-engineer"));
-    assertEquals("", normaliser.normalise("###"));
-    assertEquals("", normaliser.normalise("C++!!$$"));
-  }
-
-  @ParameterizedTest(name = "Normalises \"{0}\" to \"{1}\"")
-  @CsvSource({
-      "Software Engineer,Software engineer",
-      "Senior Software Engineer,Software engineer",
-      "junior accountant,Accountant",
-      "Lead accountant,Accountant",
-      "PRINCIPAL SOFTWARE ENGINEER,Software engineer"
-  })
-  @DisplayName("Correctly normalises known job titles ignoring prefixes and case")
-  void testNormalisesKnownTitles(String input, String expected) {
-    assertEquals(expected, normaliser.normalise(input));
-  }
-
-  @ParameterizedTest(name = "Returns empty string for unmatched or low-similarity input: {0}")
-  @CsvSource({
-      "Random title",
-      "Chief Happiness Officer",
-      "Unknown Position"
-  })
-  @DisplayName("Returns empty string if no title meets threshold")
-  void testReturnsEmptyForUnmatched(String input) {
-    assertEquals("", normaliser.normalise(input));
+    verify(matcher1, times(TEST_JOB_TITLE_COUNT)).calculateScore(eq(TEST_TOKENS_SE), anyList());
+    verify(matcher2, times(TEST_JOB_TITLE_COUNT)).calculateScore(eq(TEST_TOKENS_SE), anyList());
   }
 
   @Test
-  @DisplayName("Handles input with extra whitespace and multiple separators")
-  void testHandlesWhitespaceAndSeparators() {
-    String input = "  Senior, Software / Engineer  ";
-    assertEquals("Software engineer", normaliser.normalise(input));
+  @DisplayName("normalise returns empty string if all matches below threshold")
+  void testNormaliseReturnsEmptyIfBelowThreshold() {
+    when(matcher1.calculateScore(anyList(), anyList())).thenReturn(0.1);
+    when(matcher2.calculateScore(anyList(), anyList())).thenReturn(0.2);
+
+    String normalised = normaliser.normalise("Test title");
+
+    assertEquals("", normalised);
   }
 
   @Test
-  @DisplayName("Handles input with special characters in tech names (C++, C#, .NET)")
-  void testHandlesSpecialTechTokens() {
-    String input = "Lead C++ Developer";
-    assertEquals("", normaliser.normalise(input));
+  @DisplayName("normaliseDetailed returns highest-scoring title")
+  void testNormaliseDetailedOptional() {
+    var title = List.of("accountant");
+    // Return low scores for first title
+    when(matcher1.calculateScore(title, TEST_TOKENS_SE)).thenReturn(0.1);
+    when(matcher2.calculateScore(title, TEST_TOKENS_SE)).thenReturn(0.1);
+    // Return high scores for second title
+    when(matcher1.calculateScore(title, TEST_TOKENS_ACCOUNTANT)).thenReturn(0.5);
+    when(matcher2.calculateScore(title, TEST_TOKENS_ACCOUNTANT)).thenReturn(1.0);
 
-    input = "Software engineer C#";
-    assertEquals("Software engineer", normaliser.normalise(input));
-  }
+    MatchedTitle normalised = normaliser.normaliseDetailed("accountant").get();
 
-  @Test
-  @DisplayName("Input with typos meets threshold")
-  void testExactlyAtThreshold() {
-    // Craft input that is slightly different but passes threshold
-    String input = "Softwre Enginer"; // intentional typo
-    String result = normaliser.normalise(input);
-    assertTrue(result.equals("Software engineer") || result.equals(""));
-    // Could assert based on actual combined score if needed
-  }
-
-  @Test
-  @DisplayName("Returns correct title and overall score for exact match")
-  void testExactMatchScore() {
-    Optional<MatchedTitle> result = normaliser.normaliseDetailed("Software Engineer");
-    assertTrue(result.isPresent(), "Expected a match for 'Software Engineer");
-    MatchedTitle match = result.get();
-    assertEquals("Software engineer", match.getTitle());
-    assertEquals(1.0, match.getOverallScore(), 0.01, "Expected perfect combined score");
-  }
-
-  @Test
-  @DisplayName("Returns correct title and score for title with prefix and case differences")
-  void testPrefixAndCaseMatchScore() {
-    Optional<MatchedTitle> result = normaliser.normaliseDetailed("  Senior, Software / Engineer  ");
-    assertTrue(result.isPresent(), "Expected a match for 'Senior software eng.");
-    MatchedTitle match = result.get();
-    assertEquals("Software engineer", match.getTitle());
-    assertTrue(match.getOverallScore() >= 0.75, "Expected score above threshold");
-  }
-
-  @Test
-  @DisplayName("Returns empty Optional for low similarity input")
-  void testLowSimilarityReturnsEmpty() {
-    Optional<MatchedTitle> result = normaliser.normaliseDetailed("Chief Happiness Officer");
-    assertTrue(result.isEmpty(), "Expected no match for low similarity input");
+    // Expecting second title to be returned as best match
+    assertEquals(0.875, normalised.overallScore());
+    assertEquals("Accountant", normalised.title());
   }
 }

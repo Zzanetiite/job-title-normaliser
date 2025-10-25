@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.NoArgsConstructor;
 
 /**
  * Utility class for computing the cosine similarity between two lists of tokens.
@@ -19,9 +20,8 @@ import java.util.Set;
  * For more information, see:
  * <a href="https://en.wikipedia.org/wiki/Cosine_similarity">Cosine similarity - Wikipedia</a>
  */
-public class CosineSimilarityMatcher {
-
-  public CosineSimilarityMatcher() {}
+@NoArgsConstructor
+public class CosineSimilarityMatcher implements Matcher {
 
   /**
    * Computes the cosine similarity between two lists of tokens.
@@ -35,7 +35,7 @@ public class CosineSimilarityMatcher {
    * @return a double value between 0.0 and 1.0 representing the cosine similarity;
    * returns 0.0 if either list is empty
    */
-  public static double cosineScore(List<String> tokens1, List<String> tokens2) {
+  public double calculateScore(List<String> tokens1, List<String> tokens2) {
     tokens1 = filterValid(tokens1);
     tokens2 = filterValid(tokens2);
 

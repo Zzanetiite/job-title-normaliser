@@ -3,7 +3,11 @@ package com.zanete.jobtitlenormaliser;
 
 import com.zanete.jobtitlenormaliser.matcher.CosineSimilarityMatcher;
 import com.zanete.jobtitlenormaliser.matcher.FuzzyTokenMatcher;
+import com.zanete.jobtitlenormaliser.matcher.InvalidWeightsException;
+import com.zanete.jobtitlenormaliser.matcher.Matchers;
 import com.zanete.jobtitlenormaliser.model.MatchedTitle;
+import com.zanete.jobtitlenormaliser.model.MatcherWithWeight;
+import com.zanete.jobtitlenormaliser.model.Title;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -21,40 +25,25 @@ import java.util.Optional;
  * The final similarity score combines both approaches with configurable weighting.
  */
 public class Normaliser {
-  /**
-   * Common job title prefixes to ignore during preprocessing (e.g. "senior", "lead").
-   */
-  protected static final List<String> JOB_TITLE_PREFIXES =
-      List.of("senior", "junior", "lead", "principal");
-
-  /**
-   * The list of standard, normalised job titles used as comparison targets.
-   */
-  protected static final List<String> JOB_TITLES_NORMALISED =
-      List.of("Software engineer", "Accountant");
 
   /**
    * Minimum overall similarity score required for a title to be considered a valid match.
    */
   protected static final double TITLE_MATCH_SCORE_THRESHOLD = 0.75;
 
-  /**
-   * Weight assigned to cosine similarity (token overlap measure).
-   */
-  protected static final double COSINE_WEIGHT = 0.6;
-
-  /**
-   * Weight assigned to fuzzy matching (string similarity measure).
-   */
-  protected static final double FUZZY_WEIGHT = 0.4;
-
   private final Preprocessor preprocessor;
+  private final Matchers matchers;
+  private final List<Title> preprocessedJobTitles;
 
   /**
    * Constructs a normaliser with a preconfigured list of job title prefixes.
    */
-  public Normaliser() {
-    preprocessor = new Preprocessor(JOB_TITLE_PREFIXES);
+  public Normaliser(JobTitleProvider jobTitleProvider, Matchers matchers) {
+    preprocessor = new Preprocessor(jobTitleProvider.getJobTitlePrefixesToIgnore());
+    this.matchers = matchers;
+    this.preprocessedJobTitles = jobTitleProvider.getNormalisedJobTitles().stream()
+        .map(title -> new Title(title, preprocessor.preprocess(title)))
+        .toList();
   }
 
   /**
@@ -64,33 +53,33 @@ public class Normaliser {
    * @return the best-matching normalised title, or an empty string if none meet the threshold
    */
   public String normalise(String input) {
-    return normaliseDetailed(input).map(MatchedTitle::getTitle).orElse("");
+    return normaliseDetailed(input).map(MatchedTitle::title).orElse("");
   }
 
   public Optional<MatchedTitle> normaliseDetailed(String input) {
     List<String> inputTokens = preprocessor.preprocess(input);
-    return JOB_TITLES_NORMALISED.stream().map(title -> {
-          var titleTokens = preprocessor.preprocess(title);
-          double cosineScore = CosineSimilarityMatcher.cosineScore(inputTokens, titleTokens);
-          double fuzzyScore = FuzzyTokenMatcher.fuzzyScore(inputTokens, titleTokens);
-          double overallScore = computeOverallScore(cosineScore, fuzzyScore);
-          return new MatchedTitle(title, overallScore);
-        }).filter(match -> match.getOverallScore() >= TITLE_MATCH_SCORE_THRESHOLD)
-        .max(Comparator.comparingDouble(MatchedTitle::getOverallScore));
+    return preprocessedJobTitles.stream().map(title -> {
+          double overallScore = matchers.getMatchers().stream()
+              .mapToDouble(matcher -> calculateMatcherScore(matcher, inputTokens, title.tokens())).sum();
+          return new MatchedTitle(title.value(), overallScore);
+        }).filter(match -> match.overallScore() >= TITLE_MATCH_SCORE_THRESHOLD)
+        .max(Comparator.comparingDouble(MatchedTitle::overallScore));
   }
 
-  /**
-   * Combines cosine similarity and fuzzy matching scores into a single weighted score.
-   *
-   * <p>Formula: <code>(cosineScore * COSINE_WEIGHT) + (fuzzyScore * FUZZY_WEIGHT)</code></p>
-   * <p>The weights reflect the relative importance of token overlap versus character-level
-   * similarity and sum to 1.0 for normalised scoring.</p>
-   *
-   * @param cosineScore the cosine similarity score (token overlap)
-   * @param fuzzyScore  the fuzzy matching score (string closeness)
-   * @return a combined similarity score between 0.0 and 1.0
-   */
-  private double computeOverallScore(double cosineScore, double fuzzyScore) {
-    return (cosineScore * COSINE_WEIGHT) + (fuzzyScore * FUZZY_WEIGHT);
+  private double calculateMatcherScore(MatcherWithWeight matcherWithWeight,
+                                       List<String> inputTokens, List<String> titleTokens) {
+    var score = matcherWithWeight.matcher().calculateScore(inputTokens, titleTokens);
+    var weight = matcherWithWeight.weight();
+    return score * weight;
+  }
+
+  public static void main(String[] args) throws InvalidWeightsException {
+    Normaliser normaliser = new Normaliser(new LocalJobTitleProvider(), Matchers.builder()
+        .addMatcher(new FuzzyTokenMatcher(), 0.4)
+        .addMatcher(new CosineSimilarityMatcher(), 0.6)
+        .build());
+    String inputTitle = "Java Engineer";
+    String normalisedTitle = normaliser.normalise(inputTitle);
+    System.out.printf("Normalised title %s to %s: %n", inputTitle, normalisedTitle);
   }
 }
