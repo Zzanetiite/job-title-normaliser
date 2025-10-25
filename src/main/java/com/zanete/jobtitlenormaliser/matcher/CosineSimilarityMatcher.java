@@ -62,9 +62,12 @@ public class CosineSimilarityMatcher {
       magnitudeSquared2 += count2 * count2;
     }
 
-    return (magnitudeSquared1 == 0 || magnitudeSquared2 == 0)
-        ? 0.0
-        : dotProduct / (Math.sqrt(magnitudeSquared1) * Math.sqrt(magnitudeSquared2));
+    if (magnitudeSquared1 == 0 || magnitudeSquared2 == 0) {
+      return 0;
+    }
+
+    double magnitude = Math.sqrt(magnitudeSquared1) * Math.sqrt(magnitudeSquared2);
+    return dotProduct / magnitude;
   }
 
   /**

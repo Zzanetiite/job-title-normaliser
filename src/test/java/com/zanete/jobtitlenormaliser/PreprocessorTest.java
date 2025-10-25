@@ -4,27 +4,17 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class PreprocessorTest {
 
   private final Preprocessor preprocessor =
       new Preprocessor(List.of("senior", "junior", "lead", "principal"));
-
-  private static List<String> csvToList(String csv) {
-    if (csv == null || csv.isBlank()) {
-      return List.of();
-    }
-    return Stream.of(csv.split(","))
-        .map(String::trim)
-        .collect(Collectors.toList());
-  }
 
   @Test
   @DisplayName("Returns empty list for null input")
@@ -38,48 +28,58 @@ class PreprocessorTest {
     assertEquals(List.of(), preprocessor.preprocess("   "));
   }
 
-  @ParameterizedTest(name = "Normalises and splits '{0}' into expected tokens")
-  @CsvSource({
-      "Software Engineer, 'software,engineer'",
-      "Senior Developer, 'developer'",
-      "Lead Accountant, 'accountant'",
-      "Principal Software Engineer, 'software,engineer'",
-      "junior java developer, 'java,developer'"
-  })
-  void testPrefixesRemovedAndTokenised(String input, String expected) {
-    List<String> actual = preprocessor.preprocess(input);
-    assertEquals(csvToList(expected), actual);
+  @ParameterizedTest(name = "Normalises and splits \"{0}\" into expected tokens {1}")
+  @MethodSource("prefixRemovalProvider")
+  void testPrefixesRemovedAndTokenised(String input, List<String> expected) {
+    assertEquals(expected, preprocessor.preprocess(input));
   }
 
-  @ParameterizedTest(name = "Removes accents from '{0}'")
-  @CsvSource({
-      "résumé, resume",
-      "café, cafe",
-      "naïve, naive"
-  })
-  void testAccentsRemoved(String input, String expected) {
-    List<String> actual = preprocessor.preprocess(input);
-    assertEquals(List.of(expected), actual);
+  private static Stream<Arguments> prefixRemovalProvider() {
+    return Stream.of(
+        Arguments.of("Software Engineer", List.of("software", "engineer")),
+        Arguments.of("Senior Developer", List.of("developer")),
+        Arguments.of("Lead Accountant", List.of("accountant")),
+        Arguments.of("Principal Software Engineer", List.of("software", "engineer")),
+        Arguments.of("junior java developer", List.of("java", "developer"))
+    );
   }
 
-  @ParameterizedTest(name = "Removes punctuation but keeps '+', '#', '.' in '{0}'")
-  @CsvSource({
-      "developer!, developer",
-      "c++, c++",
-      ".net, .net",
-      "c#, c#",
-      "full-stack_senior-engineer@place, 'full,stack,engineer,place'"
-  })
-  void testPunctuationRemoved(String input, String expected) {
-    List<String> actual = preprocessor.preprocess(input);
-    assertEquals(csvToList(expected), actual);
+  @ParameterizedTest(name = "Removes accents from \"{0}\" → {1}")
+  @MethodSource("accentRemovalProvider")
+  void testAccentsRemoved(String input, List<String> expected) {
+    assertEquals(expected, preprocessor.preprocess(input));
+  }
+
+  private static Stream<Arguments> accentRemovalProvider() {
+    return Stream.of(
+        Arguments.of("résumé", List.of("resume")),
+        Arguments.of("café", List.of("cafe")),
+        Arguments.of("naïve", List.of("naive"))
+    );
+  }
+
+  @ParameterizedTest(name = "Removes punctuation but keeps '+', '#', '.' in \"{0}\" → {1}")
+  @MethodSource("punctuationProvider")
+  void testPunctuationRemoved(String input, List<String> expected) {
+    assertEquals(expected, preprocessor.preprocess(input));
+  }
+
+  private static Stream<Arguments> punctuationProvider() {
+    return Stream.of(
+        Arguments.of("developer!", List.of("developer")),
+        Arguments.of("c++", List.of("c++")),
+        Arguments.of(".net", List.of(".net")),
+        Arguments.of("c#", List.of("c#")),
+        Arguments.of("full-stack_senior-engineer@place",
+            List.of("full", "stack", "engineer", "place"))
+    );
   }
 
   @Test
   @DisplayName("Removes duplicate tokens")
   void testDuplicateTokensRemoved() {
-    List<String> actual = preprocessor.preprocess("java java developer developer");
-    assertEquals(List.of("java", "developer"), actual);
+    assertEquals(List.of("java", "developer"),
+        preprocessor.preprocess("java java developer developer"));
   }
 
   @Test
@@ -91,33 +91,33 @@ class PreprocessorTest {
   }
 
   @Test
-  @DisplayName("Removes blank tokens that appear after splitting")
+  @DisplayName("Removes blank tokens after splitting")
   void testBlankTokensRemoved() {
     List<String> actual = preprocessor.preprocess("developer  ,  , java   ");
     assertEquals(List.of("developer", "java"), actual);
   }
 
-  @ParameterizedTest(name = "Mixed-case input '{0}' is normalised to lowercase")
-  @CsvSource({
-      "'Java Developer', 'java,developer'",
-      "'C++ Engineer', 'c++,engineer'",
-      "'PYTHON', 'python'"
-  })
-  void testLowercaseNormalization(String input, String expected) {
-    List<String> actual = preprocessor.preprocess(input);
-    assertEquals(csvToList(expected), actual);
+  @ParameterizedTest(name = "Normalises mixed-case {0} → {1}")
+  @MethodSource("lowercaseProvider")
+  void testLowercaseNormalization(String input, List<String> expected) {
+    assertEquals(expected, preprocessor.preprocess(input));
   }
 
-  static Stream<String> longTokensProvider() {
+  private static Stream<Arguments> lowercaseProvider() {
     return Stream.of(
-        "a".repeat(1000),
-        "developer".repeat(100)
+        Arguments.of("Java Developer", List.of("java", "developer")),
+        Arguments.of("C++ Engineer", List.of("c++", "engineer")),
+        Arguments.of("PYTHON", List.of("python"))
     );
   }
 
-  @ParameterizedTest(name = "Handles very long tokens '{0}' without exception")
+  @ParameterizedTest(name = "Handles very long token input {0} safely")
   @MethodSource("longTokensProvider")
   void testLongTokensHandled(String longToken) {
     assertDoesNotThrow(() -> preprocessor.preprocess(longToken));
+  }
+
+  private static Stream<String> longTokensProvider() {
+    return Stream.of("a".repeat(1000), "developer".repeat(100));
   }
 }

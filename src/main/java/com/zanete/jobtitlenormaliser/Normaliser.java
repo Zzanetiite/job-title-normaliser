@@ -8,9 +8,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
-// TODO: Unit tests
-// TODO: Run formatters
-
 /**
  * Responsible for normalising job titles by comparing input text
  * against a set of known standard titles using multiple similarity measures.
@@ -72,15 +69,13 @@ public class Normaliser {
 
   public Optional<MatchedTitle> normaliseDetailed(String input) {
     List<String> inputTokens = preprocessor.preprocess(input);
-    return JOB_TITLES_NORMALISED.stream()
-        .map(title -> {
+    return JOB_TITLES_NORMALISED.stream().map(title -> {
           var titleTokens = preprocessor.preprocess(title);
           double cosineScore = CosineSimilarityMatcher.cosineScore(inputTokens, titleTokens);
           double fuzzyScore = FuzzyTokenMatcher.fuzzyScore(inputTokens, titleTokens);
           double overallScore = computeOverallScore(cosineScore, fuzzyScore);
           return new MatchedTitle(title, overallScore);
-        })
-        .filter(match -> match.getOverallScore() >= TITLE_MATCH_SCORE_THRESHOLD)
+        }).filter(match -> match.getOverallScore() >= TITLE_MATCH_SCORE_THRESHOLD)
         .max(Comparator.comparingDouble(MatchedTitle::getOverallScore));
   }
 

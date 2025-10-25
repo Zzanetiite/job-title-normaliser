@@ -43,7 +43,7 @@ class FuzzyTokenMatcherTest {
     assertDoesNotThrow(() -> FuzzyTokenMatcher.fuzzyScore(null, null));
   }
 
-  @ParameterizedTest(name = "Matching is case sensitive. Tokens must be pre-processed to achieve accurate results")
+  @ParameterizedTest(name = "Matching is case sensitive, comparing {0} vs {1}")
   @CsvSource({
       "Java, java",
       "PYTHON, python",
@@ -51,7 +51,8 @@ class FuzzyTokenMatcherTest {
   })
   void testMatchingIsCaseSensitive(String token1, String token2) {
     double score = FuzzyTokenMatcher.fuzzyScore(tokens(token1), tokens(token2));
-    assertTrue(score < 1.0 || score == 1.0, "Expected score < 1.0 because cases differ");
+    assertTrue(score < 1.0,
+        "Expected score < 1.0 because cases differ. Tokens must be pre-processed to achieve accurate results");
   }
 
   @ParameterizedTest(name = "Verify partial match between {0} and {1} returns expected score {2}")
@@ -98,7 +99,7 @@ class FuzzyTokenMatcherTest {
     assertEquals(1.0, score1);
   }
 
-  @ParameterizedTest(name = "Verify can process special characters: {0} vs {1}")
+  @ParameterizedTest(name = "Verify can process special characters: {0}")
   @CsvSource({
       "c#",
       "c++",

@@ -54,11 +54,11 @@ class NormaliserTest {
     assertEquals(expected, normaliser.normalise(input));
   }
 
-  @ParameterizedTest(name = "Returns empty string for unmatched or low-similarity input: '{0}'")
+  @ParameterizedTest(name = "Returns empty string for unmatched or low-similarity input: {0}")
   @CsvSource({
-      "'Random title'",
-      "'Chief Happiness Officer'",
-      "'Unknown Position'"
+      "Random title",
+      "Chief Happiness Officer",
+      "Unknown Position"
   })
   @DisplayName("Returns empty string if no title meets threshold")
   void testReturnsEmptyForUnmatched(String input) {
@@ -96,7 +96,7 @@ class NormaliserTest {
   @DisplayName("Returns correct title and overall score for exact match")
   void testExactMatchScore() {
     Optional<MatchedTitle> result = normaliser.normaliseDetailed("Software Engineer");
-    assertTrue(result.isPresent(), "Expected a match for 'Software Engineer'");
+    assertTrue(result.isPresent(), "Expected a match for 'Software Engineer");
     MatchedTitle match = result.get();
     assertEquals("Software engineer", match.getTitle());
     assertEquals(1.0, match.getOverallScore(), 0.01, "Expected perfect combined score");
@@ -106,7 +106,7 @@ class NormaliserTest {
   @DisplayName("Returns correct title and score for title with prefix and case differences")
   void testPrefixAndCaseMatchScore() {
     Optional<MatchedTitle> result = normaliser.normaliseDetailed("  Senior, Software / Engineer  ");
-    assertTrue(result.isPresent(), "Expected a match for 'Senior software eng.'");
+    assertTrue(result.isPresent(), "Expected a match for 'Senior software eng.");
     MatchedTitle match = result.get();
     assertEquals("Software engineer", match.getTitle());
     assertTrue(match.getOverallScore() >= 0.75, "Expected score above threshold");
