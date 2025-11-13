@@ -8,9 +8,6 @@ import lombok.Getter;
 /**
  * Encapsulates a collection of matchers, each with an associated weight, used to compute
  * a combined similarity score between job titles in a Normaliser.
- *
- * <p>This class supports building a weighted set of matchers through the {@link Builder} pattern.
- * The sum of all matcher weights must equal 1.0, otherwise {@link InvalidWeightsException} is thrown.
  */
 @Getter
 public class Matchers {
@@ -31,7 +28,7 @@ public class Matchers {
      * Adds a matcher with a specified weight to the builder.
      *
      * @param matcher the matcher implementation to add
-     * @param weight the weight of this matcher in the overall score calculation (0.0–1.0)
+     * @param weight  the weight of this matcher in the overall score calculation (0.0–1.0)
      * @return the builder instance for method chaining
      */
     public Builder addMatcher(Matcher matcher, double weight) {

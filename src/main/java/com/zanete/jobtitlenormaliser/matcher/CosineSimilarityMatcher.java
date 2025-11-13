@@ -11,12 +11,6 @@ import lombok.NoArgsConstructor;
 
 /**
  * Utility class for computing the cosine similarity between two lists of tokens.
- * <p>
- * Cosine similarity is a measure of similarity between two non-zero vectors
- * of an inner product space that measures the cosine of the angle between them.
- * It is commonly used in text analysis and information retrieval to compare
- * documents or tokenised strings.
- * <p>
  * For more information, see:
  * <a href="https://en.wikipedia.org/wiki/Cosine_similarity">Cosine similarity - Wikipedia</a>
  */
@@ -72,9 +66,6 @@ public class CosineSimilarityMatcher implements Matcher {
 
   /**
    * Computes the term frequency map for a list of tokens.
-   *
-   * <p>The returned map contains each unique token as a key and the number
-   * of times it appears in the list as the value.</p>
    *
    * @param tokens the list of tokens
    * @return a map from token to frequency count

@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
  *   <li>Unicode normalise, lowercase and trim</li>
  *   <li>Split using common separators</li>
  *   <li>Remove accents and punctuation</li>
- *   <li>Filter out blank tokens and common prefixes via {@link #isCommonPrefix(String)}</li>
+ *   <li>Filter out blank tokens and common prefixes
  * </ol>
  */
 public class Preprocessor {

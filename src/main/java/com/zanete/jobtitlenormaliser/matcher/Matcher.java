@@ -11,7 +11,7 @@ import java.util.List;
 public interface Matcher {
 
   /**
-   * Computes the cosine similarity between two lists of tokens.
+   * Computes the similarity between two lists of tokens.
    *
    * @param tokens1 the first list of tokens
    * @param tokens2 the second list of tokens

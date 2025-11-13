@@ -8,11 +8,6 @@ import org.apache.commons.text.similarity.JaroWinklerSimilarity;
 /**
  * Utility class for computing a fuzzy similarity score between two lists of tokens
  * using the Jaro-Winkler distance.
- *
- * <p>Jaro-Winkler similarity is a string metric that gives a score between 0 and 1
- * based on how similar two strings are, giving higher scores to strings that match
- * from the beginning. It is commonly used in record linkage and approximate string matching.</p>
- * <p>
  * For more information, see:
  * <a href="https://en.wikipedia.org/wiki/Jaro%E2%80%93Winkler_distance">Jaro-Winkler similarity - Wikipedia</a>
  */

@@ -14,15 +14,7 @@ import java.util.Optional;
 
 /**
  * Responsible for normalising job titles by comparing input text
- * against a set of known standard titles using multiple similarity measures.
- *
- * <p>Each title is preprocessed and compared using:
- * <ul>
- *   <li><b>Cosine Similarity</b> – measures overlap in token frequency (to find word overlap).</li>
- *   <li><b>Fuzzy Matching (Jaro–Winkler)</b> – measures string closeness between individual tokens (to account for typos).</li>
- * </ul>
- * <p>
- * The final similarity score combines both approaches with configurable weighting.
+ * against a set of known standard titles using provided matchers and their weight.
  */
 public class Normaliser {
 
@@ -35,9 +27,6 @@ public class Normaliser {
   private final Matchers matchers;
   private final List<Title> preprocessedJobTitles;
 
-  /**
-   * Constructs a normaliser with a preconfigured list of job title prefixes.
-   */
   public Normaliser(JobTitleProvider jobTitleProvider, Matchers matchers) {
     preprocessor = new Preprocessor(jobTitleProvider.getJobTitlePrefixesToIgnore());
     this.matchers = matchers;
@@ -60,7 +49,8 @@ public class Normaliser {
     List<String> inputTokens = preprocessor.preprocess(input);
     return preprocessedJobTitles.stream().map(title -> {
           double overallScore = matchers.getMatchers().stream()
-              .mapToDouble(matcher -> calculateMatcherScore(matcher, inputTokens, title.tokens())).sum();
+              .mapToDouble(matcher -> calculateMatcherScore(matcher, inputTokens, title.tokens()))
+              .sum();
           return new MatchedTitle(title.value(), overallScore);
         }).filter(match -> match.overallScore() >= TITLE_MATCH_SCORE_THRESHOLD)
         .max(Comparator.comparingDouble(MatchedTitle::overallScore));
